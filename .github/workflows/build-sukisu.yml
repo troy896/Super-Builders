@@ -25,9 +25,6 @@ on:
       add_zeromount:
         type: boolean
         default: true
-      add_usb_debugging_stealth:
-        type: boolean
-        default: true
       add_zram:
         type: boolean
         default: true
@@ -181,21 +178,6 @@ jobs:
           git checkout "$SUKISU_COMMIT"
         fi
 
-    - name: Fix SukiSU Upstream Bugs
-      working-directory: ${{ env.KERNEL_ROOT }}/${{ env.KSU_DIR }}/kernel
-      run: |
-        sed -i 's/newcreds\.cap_/newcreds->cap_/g' app_profile.c
-        sed -i 's/profile->selinux_domain/profile.selinux_domain/g' app_profile.c
-        sed -i '/setup_groups(&profile, cred)/{N;/newcreds/{s/setup_groups(&profile, cred)/setup_groups(\&profile, newcreds)/}}' app_profile.c
-        sed -i 's/KSU_IOCTL(KSU_IOCTL_NEW_GET_/KSU_IOCTL(NEW_GET_/g' supercalls.c
-        sed -i '/ksu_persistent_allow_list/{n;s/^\(\s*\)ksu_mark_running_process/\1\/*ksu_mark_running_process/;s/();$/();*\//}' supercalls.c
-
-        # susfs_reorder_mnt_id removed from upstream susfs4ksu (Feb 21 2026)
-        sed -i '/susfs_reorder_mnt_id/d' setuid_hook.c
-
-        # On 6.8+, dual ksu_handle_setresuid defs when SUSFS is enabled
-        sed -i 's/defined(CONFIG_KSU_MANUAL_HOOK))/defined(CONFIG_KSU_MANUAL_HOOK) \&\& !defined(CONFIG_KSU_SUSFS))/' setuid_hook.c
-
     - name: Fix Old Kernel Compatibility
       working-directory: ${{ env.KERNEL_ROOT }}/common
       run: |
@@ -220,48 +202,12 @@ jobs:
       run: |
         patch -p1 -F3 --no-backup-if-mismatch < "$GITHUB_WORKSPACE/$VERSION_DIR/SukiSU-Ultra/patches/60_zeromount-${ANDROID_VER}-${KERNEL_VER}.patch"
 
-    - name: Apply USB Debugging Stealth
-      if: inputs.add_usb_debugging_stealth && inputs.add_zeromount && inputs.add_susfs
-      working-directory: ${{ env.KERNEL_ROOT }}/common
-      run: |
-        ADB_FILTER="$GITHUB_WORKSPACE/$VERSION_DIR/SukiSU-Ultra/patches/65_zeromount-adb-filter-${ANDROID_VER}-${KERNEL_VER}.patch"
-        if [ -f "$ADB_FILTER" ]; then
-          patch -p1 -F3 --no-backup-if-mismatch < "$ADB_FILTER"
-        fi
-
-    - name: Apply SUSFS Version-Specific Fixes
+    - name: Fix SUSFS Compatibility
       if: inputs.add_susfs
       working-directory: ${{ env.KERNEL_ROOT }}/common
-      env:
-        ANDROID_VER: ${{ inputs.android_version }}
-        KERNEL_VER: ${{ inputs.kernel_version }}
-        OS_PATCH: ${{ inputs.os_patch_level }}
       run: |
-        SL="$SUBLEVEL"
-
-        if grep -q 'goto show_pad;' ./fs/proc/task_mmu.c && ! grep -q '^show_pad:' ./fs/proc/task_mmu.c; then
-          sed -i '/show_smap_vma_flags(m, vma);/,/return 0;/{/return 0;/i\show_pad:
-          }' ./fs/proc/task_mmu.c
-        fi
-
-        if [[ "$ANDROID_VER" == "android12" && "$KERNEL_VER" == "5.10" && $SL -le 117 ]]; then
-          [ -f "$KERNEL_PATCHES/wild/susfs_fix_patches/v2.0.0/a12-5.10/fdinfo.c.patch" ] && \
-            patch -p1 < "$KERNEL_PATCHES/wild/susfs_fix_patches/v2.0.0/a12-5.10/fdinfo.c.patch" || true
-        fi
-
-        sed -i 's/inotify_mark_user_mask(mark)/mark->mask/g' ./fs/notify/fdinfo.c
-        sed -i '/u32 mask = mark->mask & IN_ALL_EVENTS;/d' ./fs/notify/fdinfo.c
-        sed -i 's/s_dev, mask)/s_dev, mark->mask)/g' ./fs/notify/fdinfo.c
-        sed -i 's/^\([[:space:]]*\)mask, mark->ignored_mask/\1mark->mask, mark->ignored_mask/' ./fs/notify/fdinfo.c
-        if grep -q 'out_seq_printf:' ./fs/notify/fdinfo.c; then
-          sed -i 's/^\([[:space:]]*\)out_seq_printf:$/\1out_seq_printf: ;/' ./fs/notify/fdinfo.c
-        fi
-
-        # i_user_ns/i_uid_into_mnt backported mid-5.15 — fall back to direct i_uid on old sublevels
-        if [ -f ./fs/susfs.c ] && ! grep -q 'i_user_ns' ./include/linux/fs.h 2>/dev/null; then
-          sed -i 's/i_uid_into_mnt(i_user_ns(&fi->inode), &fi->inode)\.val/fi->inode.i_uid.val/g' ./fs/susfs.c
-          sed -i 's/i_uid_into_mnt(i_user_ns(inode), inode)\.val/inode->i_uid.val/g' ./fs/susfs.c
-        fi
+        FIX="$GITHUB_WORKSPACE/$VERSION_DIR/build-helpers/fix-susfs-compat.sh"
+        [ -f "$FIX" ] && bash "$FIX" . "$SUBLEVEL" "$ANDROID_VER" "$KERNEL_VER" "$KERNEL_PATCHES" || true
 
     - name: Setup Baseband Guard
       if: inputs.add_bbg
@@ -485,7 +431,6 @@ jobs:
       env:
         ADD_SUSFS: ${{ inputs.add_susfs }}
         ADD_ZEROMOUNT: ${{ inputs.add_zeromount }}
-        ADD_USB_STEALTH: ${{ inputs.add_usb_debugging_stealth }}
         ADD_ZRAM: ${{ inputs.add_zram }}
         ADD_BBG: ${{ inputs.add_bbg }}
         ADD_OVERLAYFS: ${{ inputs.add_overlayfs_support }}
@@ -502,7 +447,6 @@ jobs:
           echo "| **OS Patch Level** | ${OS_PATCH} |"
           echo "| **Enhanced SUSFS** | $(S "$ADD_SUSFS") |"
           echo "| **ZeroMount** | $(S "$ADD_ZEROMOUNT") |"
-          echo "| **USB Debugging Stealth** | $(S "$ADD_USB_STEALTH") |"
           echo "| **ZRAM (LZ4K/LZ4KD)** | $(S "$ADD_ZRAM") |"
           echo "| **LZ4 v1.10.0** | $(S "$ADD_ZRAM") |"
           echo "| **Overlayfs Support** | $(S "$ADD_OVERLAYFS") |"

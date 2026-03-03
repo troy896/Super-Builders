@@ -152,10 +152,6 @@ on:
         description: "Add SUSFS"
         type: boolean
         default: true
-      add_usb_debugging_stealth:
-        description: "Add USB Debugging Stealth (ADB filter)"
-        type: boolean
-        default: true
       add_zeromount:
         description: "Add ZeroMount"
         type: boolean
@@ -192,9 +188,6 @@ on:
         type: string
         default: "KernelSU-Next"
       add_susfs:
-        type: boolean
-        default: true
-      add_usb_debugging_stealth:
         type: boolean
         default: true
       add_zeromount:
@@ -449,7 +442,6 @@ jobs:
       os_patch_level: ${{ needs.resolve.outputs.os_patch_level }}
       add_susfs: ${{ inputs.add_susfs }}
       add_zeromount: ${{ inputs.add_zeromount }}
-      add_usb_debugging_stealth: ${{ inputs.add_usb_debugging_stealth }}
       add_zram: ${{ inputs.add_zram }}
       add_bbg: ${{ inputs.add_bbg }}
       add_overlayfs_support: ${{ inputs.add_overlayfs_support }}
@@ -468,7 +460,6 @@ jobs:
       os_patch_level: ${{ needs.resolve.outputs.os_patch_level }}
       add_susfs: ${{ inputs.add_susfs }}
       add_zeromount: ${{ inputs.add_zeromount }}
-      add_usb_debugging_stealth: ${{ inputs.add_usb_debugging_stealth }}
       add_zram: ${{ inputs.add_zram }}
       add_bbg: ${{ inputs.add_bbg }}
       add_overlayfs_support: ${{ inputs.add_overlayfs_support }}
@@ -487,7 +478,6 @@ jobs:
       os_patch_level: ${{ needs.resolve.outputs.os_patch_level }}
       add_susfs: ${{ inputs.add_susfs }}
       add_zeromount: ${{ inputs.add_zeromount }}
-      add_usb_debugging_stealth: ${{ inputs.add_usb_debugging_stealth }}
       add_zram: ${{ inputs.add_zram }}
       add_bbg: ${{ inputs.add_bbg }}
       add_overlayfs_support: ${{ inputs.add_overlayfs_support }}
@@ -506,7 +496,6 @@ jobs:
       os_patch_level: ${{ needs.resolve.outputs.os_patch_level }}
       add_susfs: ${{ inputs.add_susfs }}
       add_zeromount: ${{ inputs.add_zeromount }}
-      add_usb_debugging_stealth: ${{ inputs.add_usb_debugging_stealth }}
       add_zram: ${{ inputs.add_zram }}
       add_bbg: ${{ inputs.add_bbg }}
       add_overlayfs_support: ${{ inputs.add_overlayfs_support }}

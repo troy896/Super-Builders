@@ -206,7 +206,7 @@ jobs:
             PIN_FILE="resukisu-pin.txt"
             ;;
           KernelSU-Next)
-            curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/dev_susfs/kernel/setup.sh" | bash
+            curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/stable/kernel/setup.sh" | bash -s stable
             KSU_DIR="KernelSU-Next"
             echo "KSU_DIR=$KSU_DIR" >> "$GITHUB_ENV"
             PIN_FILE="kernelsu-next-pin.txt"
@@ -232,25 +232,6 @@ jobs:
           echo "Pinned $KSU_VARIANT to $(git rev-parse --short=7 HEAD)"
         fi
 
-    - name: Fix KSU Upstream Bugs
-      working-directory: ${{ env.KERNEL_ROOT }}/${{ env.KSU_DIR }}/kernel
-      run: |
-        case "$KSU_VARIANT" in
-          ReSukiSU)
-            ;;
-          KernelSU-Next)
-            ;;
-          WKSU)
-            ;;
-          *)
-            sed -i 's/newcreds\.cap_/newcreds->cap_/g' app_profile.c
-            sed -i 's/profile->selinux_domain/profile.selinux_domain/g' app_profile.c
-            sed -i '/setup_groups(&profile, cred)/{N;/newcreds/{s/setup_groups(&profile, cred)/setup_groups(\&profile, newcreds)/}}' app_profile.c
-            sed -i 's/KSU_IOCTL(KSU_IOCTL_NEW_GET_/KSU_IOCTL(NEW_GET_/g' supercalls.c
-            sed -i '/ksu_persistent_allow_list/{n;s/^\(\s*\)ksu_mark_running_process/\1\/*ksu_mark_running_process/;s/();$/();*\//}' supercalls.c
-            ;;
-        esac
-
     - name: Fix Old Kernel Compatibility
       run: |
         FIX_SCRIPT="$GITHUB_WORKSPACE/$VERSION_DIR/build-helpers/fix-old-kernel-compat.sh"
@@ -270,11 +251,6 @@ jobs:
         if [ -f "$PATCH_50" ]; then
           if patch -p1 -F3 --no-backup-if-mismatch -d "$KERNEL_ROOT/common" < "$PATCH_50"; then
             RESULTS="${RESULTS}50_enhanced_susfs|applied\n"
-            TMU="$KERNEL_ROOT/common/fs/proc/task_mmu.c"
-            if [[ "$SUBLEVEL" -lt 218 ]] && grep -q 'goto show_pad;' "$TMU" && ! grep -q '^show_pad:' "$TMU"; then
-              sed -i '/show_smap_vma_flags(m, vma);/,/return 0;/{/return 0;/i\show_pad:
-              }' "$TMU"
-            fi
           else
             RESULTS="${RESULTS}50_enhanced_susfs|FAILED\n"
           fi
@@ -304,17 +280,6 @@ jobs:
           RESULTS="${RESULTS}60_zeromount|skipped (no patch)\n"
         fi
 
-        PATCH_65="$PATCH_DIR/65_zeromount-adb-filter-${ANDROID_VER}-${KERNEL_VER}.patch"
-        if [ -f "$PATCH_65" ]; then
-          if patch -p1 --fuzz=3 --no-backup-if-mismatch -d "$KERNEL_ROOT/common" < "$PATCH_65"; then
-            RESULTS="${RESULTS}65_zeromount_adb|applied\n"
-          else
-            RESULTS="${RESULTS}65_zeromount_adb|FAILED\n"
-          fi
-        else
-          RESULTS="${RESULTS}65_zeromount_adb|skipped (no patch)\n"
-        fi
-
         echo "PATCH_RESULTS<<EOF" >> "$GITHUB_ENV"
         echo -e "$RESULTS" >> "$GITHUB_ENV"
         echo "EOF" >> "$GITHUB_ENV"
@@ -323,6 +288,11 @@ jobs:
           echo "::error::One or more patches failed to apply"
           exit 1
         fi
+
+    - name: Fix SUSFS Compatibility
+      run: |
+        FIX="$GITHUB_WORKSPACE/$VERSION_DIR/build-helpers/fix-susfs-compat.sh"
+        [ -f "$FIX" ] && bash "$FIX" "$KERNEL_ROOT/common" "$SUBLEVEL" "$ANDROID_VER" "$KERNEL_VER" "" || true
 
     - name: Scan Patch Rejects
       if: always()
