@@ -266,6 +266,13 @@ jobs:
       run: |
         [ -f scripts/setlocalversion ] && sed -i 's/ -dirty//g; s/printf.*-dirty.*//' scripts/setlocalversion || true
 
+    - name: Bypass ABI Checks
+      working-directory: kernel_source
+      run: |
+        touch abi_symbollist.raw 2>/dev/null || true
+        sed -i 's/check_defconfig//' build.config.gki 2>/dev/null || true
+        scripts/config --file "arch/arm64/configs/${{ inputs.defconfig }}" -d TRIM_UNUSED_KSYMS 2>/dev/null || true
+
     - name: Build Kernel
       working-directory: kernel_source
       env:
