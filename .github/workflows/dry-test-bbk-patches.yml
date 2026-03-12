@@ -348,7 +348,7 @@ jobs:
         export PATH="${CLANG_BIN}:$PATH"
 
         REAL_CLANG=$(command -v clang)
-        printf '#!/bin/bash\nargs=()\nfor a in "$@"; do [[ "$a" == "-Werror" ]] || args+=("$a"); done\nexec "%s" "${args[@]}"\n' "$REAL_CLANG" > /tmp/clang-no-werror
+        printf '#!/bin/bash\nargs=()\nfor a in "$@"; do [[ "$a" == -Werror* ]] || args+=("$a"); done\nexec "%s" "${args[@]}"\n' "$REAL_CLANG" > /tmp/clang-no-werror
         chmod +x /tmp/clang-no-werror
 
         MAKE="make O=out ARCH=arm64 LLVM=1 \
