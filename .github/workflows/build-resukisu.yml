@@ -231,6 +231,7 @@ jobs:
       run: |
         wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/GKI/apply-kernel-patches.sh
         bash apply-kernel-patches.sh . "$KERNEL_VER" "$KERNEL_PATCHES"
+        rm apply-kernel-patches.sh
 
     - name: Upgrade LZ4 to v1.10.0
       if: inputs.add_zram
