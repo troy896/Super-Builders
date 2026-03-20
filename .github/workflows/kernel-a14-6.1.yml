@@ -51,8 +51,8 @@ on:
         type: choice
         options:
           - generic
-          - lake
-        default: "lake"
+          - komodo
+        default: "komodo"
   workflow_call:
     inputs:
       ksu_variant:
