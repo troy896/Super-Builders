@@ -48,7 +48,7 @@ on:
         default: ""
       device_codename:
         type: string
-        default: ""
+        default: "komodo"
 
 jobs:
   build:
