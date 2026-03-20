@@ -29,11 +29,11 @@ on:
       add_zram:
         description: "Add ZRAM with LZ4K/LZ4KD"
         type: boolean
-        default: true
+        default: false
       add_bbg:
         description: "Add Baseband Guard"
         type: boolean
-        default: true
+        default: false
       add_overlayfs_support:
         description: "Add overlayfs support (CONFIG_TMPFS_XATTR + POSIX ACL)"
         type: boolean
@@ -66,10 +66,10 @@ on:
         default: true
       add_zram:
         type: boolean
-        default: true
+        default: false
       add_bbg:
         type: boolean
-        default: true
+        default: false
       add_overlayfs_support:
         type: boolean
         default: true
@@ -182,6 +182,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - sub_level: "145"
+            os_patch_level: "2025-09"
           - sub_level: "157"
             os_patch_level: "2025-12"
     uses: ./.github/workflows/build-resukisu.yml
