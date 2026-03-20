@@ -18,6 +18,9 @@ jobs:
         git clone https://github.com/WildKernels/AnyKernel3.git -b gki-2.0 --depth=1
         rm -rf AnyKernel3/.git
 
+    - name: Clone Susfs
+      run: git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android14-6.1
+      
     - name: Clone Kernel Patches
       run: git clone https://github.com/WildKernels/kernel_patches.git --depth=1
 
@@ -35,6 +38,14 @@ jobs:
       with:
         name: anykernel3
         path: AnyKernel3/
+        retention-days: 1
+        compression-level: 6
+        
+    - name: Upload Susfs
+      uses: actions/upload-artifact@v7
+      with:
+        name: susfs4ksu
+        path: susfs4ksu/
         retention-days: 1
         compression-level: 6
 
