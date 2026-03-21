@@ -292,7 +292,7 @@ jobs:
         bash "$HELPERS/bypass-abi-check.sh" . "$ANDROID_VER" "$KERNEL_VER"
 
     - name: Clean Module Lists
-      if: inputs.add_susfs
+      if: inputs.add_zram
       working-directory: ${{ env.KERNEL_ROOT }}
       run: |
         HELPERS="$GITHUB_WORKSPACE/$VERSION_DIR/build-helpers"
