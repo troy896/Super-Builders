@@ -196,7 +196,7 @@ jobs:
         cp "$GITHUB_WORKSPACE/susfs4ksu/kernel_patches/include/linux/"* ./include/linux/
         patch -p1 -F3 --no-backup-if-mismatch < "$GITHUB_WORKSPACE/susfs4ksu/kernel_patches/50_add_susfs_in_gki-android14-6.1.patch"
 
-    - name: Apply Enhanced SUSFS Patch
+    - name: Apply Enhanced SUSFS Patchh
       if: inputs.add_zram
       working-directory: ${{ env.KERNEL_ROOT }}/common
       run: |
